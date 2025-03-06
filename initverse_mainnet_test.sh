@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Оформление текста: цвета и фоны
+# Цвета для оформления
 CLR_INFO='\033[1;97;44m'
 CLR_SUCCESS='\033[1;30;42m'
 CLR_WARNING='\033[1;37;41m'
@@ -8,20 +8,20 @@ CLR_ERROR='\033[1;31;40m'
 CLR_RESET='\033[0m'
 CLR_GREEN='\033[0;32m'
 
-# Функция отображения логотипа
+# Логотип
 function show_logo() {
     echo -e "${CLR_INFO} Добро пожаловать в скрипт управления InitVerse Mainnet ${CLR_RESET}"
     curl -s https://raw.githubusercontent.com/profitnoders/Profit_Nodes/refs/heads/main/logo_new.sh | bash
 }
 
-# Функция установки зависимостей
+# Зависимости
 function install_dependencies() {
     sudo apt update -y
     sudo apt upgrade -y
     sudo apt install -y wget curl
 }
 
-# Установка ноды InitVerse Mainnet
+# Установка ноды
 function install_node() {
     install_dependencies
 
@@ -37,17 +37,17 @@ function install_node() {
     echo -e "${CLR_WARNING}Сколько ядер CPU использовать? (например, 4):${CLR_RESET}"
     read CPU_CORES
 
+    # Конфигурация
+    echo "WALLET=$WALLET" > "$HOME/initverse/.env"
+    echo "MAINER_NAME=$MAINER_NAME" >> "$HOME/initverse/.env"
+
     CPU_DEVICES=""
-    for ((i=1; i<=CPU_CORES; i++))
+    for ((i=0; i<CPU_CORES; i++))
     do
       CPU_DEVICES+=" --cpu-devices $i"
     done
 
-    # Создаем файл конфигурации .env
-    echo "WALLET=$WALLET" > "$HOME/initverse/.env"
-    echo "MAINER_NAME=$MAINER_NAME" >> "$HOME/initverse/.env"
-
-    # Создаем системный сервис
+    # Создаем сервис systemd
     sudo bash -c "cat <<EOT > /etc/systemd/system/initverse.service
 [Unit]
 Description=InitVerse Mainnet Miner Service
@@ -57,37 +57,39 @@ After=network.target
 User=$(whoami)
 WorkingDirectory=$HOME/initverse
 EnvironmentFile=$HOME/initverse/.env
-ExecStart=/bin/bash -c 'source $HOME/initverse/.env && $HOME/initverse/iniminer-linux-x64 --pool stratum+tcp://${WALLET}.${MAINER_NAME}@pool-b.yatespool.com:32488 $(seq -f "--cpu-devices %.0f" 1 ${CPU_CORES})'
+ExecStart=/bin/bash -c 'source \$HOME/initverse/.env && \$HOME/initverse/iniminer-linux-x64 --pool stratum+tcp://\${WALLET}.\${MAINER_NAME}@pool-b.yatespool.com:32488$CPU_DEVICES'
 Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
 EOT"
 
-    # Запуск системного сервиса
+    # Сохраняем настройки
+    echo "WALLET=$WALLET" > "$HOME/initverse/.env"
+    echo "MAINER_NAME=$MAINER_NAME" >> "$HOME/initverse/.env"
+    echo "CPU_CORES=$CPU_CORES" >> "$HOME/initverse/.env"
+
+    # Перезапуск сервиса
     sudo systemctl daemon-reload
     sudo systemctl enable initverse
-    sudo systemctl start initverse
-    echo -e "${CLR_SUCCESS}Нода InitVerse в сети Mainnet установлена!${CLR_RESET}"
+    sudo systemctl restart initverse
+
+    echo -e "${CLR_SUCCESS}Нода InitVerse установлена с $CPU_CORES ядрами!${CLR_RESET}"
 }
 
 # Просмотр логов
 function view_logs() {
-    echo -e "${CLR_INFO}Логи InitVerse Mainnet...${CLR_RESET}"
     sudo journalctl -fu initverse.service
 }
 
-# Удаление ноды InitVerse Mainnet
+# Удаление ноды
 function remove_node() {
     sudo systemctl stop initverse
     sudo systemctl disable initverse
     sudo rm /etc/systemd/system/initverse.service
     sudo systemctl daemon-reload
-
-    if [ -d "$HOME/initverse" ]; then
-        rm -rf $HOME/initverse
-        echo -e "${CLR_WARNING}Файлы ноды InitVerse Mainnet удалены.${CLR_RESET}"
-    fi
+    rm -rf $HOME/initverse
+    echo -e "${CLR_WARNING}Нода удалена.${CLR_RESET}"
 }
 
 # Главное меню
@@ -98,17 +100,16 @@ function show_menu() {
     echo -e "${CLR_GREEN}3) 🗑️ Удалить ноду${CLR_RESET}"
     echo -e "${CLR_GREEN}4) ❌ Выйти${CLR_RESET}"
 
-    echo -e "${CLR_INFO}Выберите номер действия:${CLR_RESET}"
-    read choice
+    read -p "Выберите номер действия: " choice
 
     case $choice in
         1) install_node ;;
         2) view_logs ;;
         3) remove_node ;;
-        4) echo -e "${CLR_ERROR}Выход...${CLR_RESET}" && exit 0 ;;
-        *) echo -e "${CLR_WARNING}Неверный выбор. Попробуйте снова.${CLR_RESET}" && show_menu ;;
+        4) exit 0 ;;
+        *) echo -e "${CLR_WARNING}Неверный выбор.${CLR_RESET}" && show_menu ;;
     esac
 }
 
-# Запуск меню
 show_menu
+
