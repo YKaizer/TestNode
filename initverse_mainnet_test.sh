@@ -50,6 +50,21 @@ function install_node() {
     # Перечитываем переменные
     source $HOME/initverse/.env
 
+    # Создаём systemd-сервис
+    create_service
+
+    # Запуск сервиса
+    sudo systemctl daemon-reload
+    sudo systemctl enable initverse
+    sudo systemctl restart initverse
+
+    echo -e "${CLR_SUCCESS}Нода InitVerse установлена и запущена с $CPU_CORES ядрами!${CLR_RESET}"
+}
+
+# Функция создания systemd сервиса
+function create_service() {
+    source $HOME/initverse/.env
+
     # Формируем аргументы для CPU
     CPU_DEVICES=""
     for ((i=0; i<CPU_CORES; i++))
@@ -57,7 +72,7 @@ function install_node() {
       CPU_DEVICES+=" --cpu-devices $i"
     done
 
-    # Теперь создаем systemd-сервис (только после `.env`)
+    # Записываем новый сервис
     sudo bash -c "cat <<EOT > /etc/systemd/system/initverse.service
 [Unit]
 Description=InitVerse Mainnet Miner Service
@@ -72,13 +87,39 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOT"
+}
 
-    # Перезапуск сервиса
+# Функция запуска майнера
+function start_miner() {
+    sudo systemctl start initverse
+    echo -e "${CLR_SUCCESS}Майнер запущен!${CLR_RESET}"
+}
+
+# Функция остановки майнера
+function stop_miner() {
+    sudo systemctl stop initverse
+    echo -e "${CLR_WARNING}Майнер остановлен.${CLR_RESET}"
+}
+
+# Функция изменения количества ядер
+function change_cpu_cores() {
+    echo -e "${CLR_WARNING}Введите новое количество ядер (от 2 до 8):${CLR_RESET}"
+    read NEW_CPU_CORES
+
+    if [[ $NEW_CPU_CORES -lt 2 || $NEW_CPU_CORES -gt 8 ]]; then
+        echo -e "${CLR_ERROR}Ошибка: количество ядер должно быть от 2 до 8!${CLR_RESET}"
+        exit 1
+    fi
+
+    # Обновляем файл .env
+    sed -i "s/^CPU_CORES=.*/CPU_CORES=$NEW_CPU_CORES/" $HOME/initverse/.env
+
+    # Перезапускаем сервис
+    create_service
     sudo systemctl daemon-reload
-    sudo systemctl enable initverse
     sudo systemctl restart initverse
 
-    echo -e "${CLR_SUCCESS}Нода InitVerse установлена и запущена с $CPU_CORES ядрами!${CLR_RESET}"
+    echo -e "${CLR_SUCCESS}Количество ядер изменено на $NEW_CPU_CORES!${CLR_RESET}"
 }
 
 # Просмотр логов
@@ -100,19 +141,26 @@ function remove_node() {
 function show_menu() {
     show_logo
     echo -e "${CLR_GREEN}1) 🚀 Установить ноду${CLR_RESET}"
-    echo -e "${CLR_GREEN}2) 📜 Просмотр логов${CLR_RESET}"
-    echo -e "${CLR_GREEN}3) 🗑️ Удалить ноду${CLR_RESET}"
-    echo -e "${CLR_GREEN}4) ❌ Выйти${CLR_RESET}"
+    echo -e "${CLR_GREEN}2) ▶ Запустить майнер${CLR_RESET}"
+    echo -e "${CLR_GREEN}3) ⏹ Остановить майнер${CLR_RESET}"
+    echo -e "${CLR_GREEN}4) 🔄 Изменить количество ядер${CLR_RESET}"
+    echo -e "${CLR_GREEN}5) 📜 Просмотр логов${CLR_RESET}"
+    echo -e "${CLR_GREEN}6) 🗑️ Удалить ноду${CLR_RESET}"
+    echo -e "${CLR_GREEN}7) ❌ Выйти${CLR_RESET}"
 
     read -p "Выберите номер действия: " choice
 
     case $choice in
         1) install_node ;;
-        2) view_logs ;;
-        3) remove_node ;;
-        4) exit 0 ;;
+        2) start_miner ;;
+        3) stop_miner ;;
+        4) change_cpu_cores ;;
+        5) view_logs ;;
+        6) remove_node ;;
+        7) exit 0 ;;
         *) echo -e "${CLR_WARNING}Неверный выбор.${CLR_RESET}" && show_menu ;;
     esac
 }
 
 show_menu
+
