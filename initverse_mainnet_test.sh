@@ -47,6 +47,9 @@ function install_node() {
     echo "MAINER_NAME=$MAINER_NAME" >> "$HOME/initverse/.env"
     echo "CPU_CORES=$CPU_CORES" >> "$HOME/initverse/.env"
 
+    # Перечитываем переменные
+    source $HOME/initverse/.env
+
     # Формируем аргументы для CPU
     CPU_DEVICES=""
     for ((i=0; i<CPU_CORES; i++))
@@ -54,7 +57,7 @@ function install_node() {
       CPU_DEVICES+=" --cpu-devices $i"
     done
 
-    # Создание systemd сервиса
+    # Теперь создаем systemd-сервис (только после `.env`)
     sudo bash -c "cat <<EOT > /etc/systemd/system/initverse.service
 [Unit]
 Description=InitVerse Mainnet Miner Service
@@ -63,8 +66,7 @@ After=network.target
 [Service]
 User=$(whoami)
 WorkingDirectory=$HOME/initverse
-EnvironmentFile=$HOME/initverse/.env
-ExecStart=/bin/bash -c 'source $HOME/initverse/.env && $HOME/initverse/iniminer-linux-x64 --pool stratum+tcp://'\$WALLET'.'\$MAINER_NAME'@pool-b.yatespool.com:32488$CPU_DEVICES'
+ExecStart=/bin/bash -c 'source $HOME/initverse/.env && $HOME/initverse/iniminer-linux-x64 --pool stratum+tcp://$WALLET.$MAINER_NAME@pool-b.yatespool.com:32488$CPU_DEVICES'
 Restart=on-failure
 
 [Install]
