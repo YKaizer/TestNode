@@ -102,6 +102,7 @@ function insert_private_key() {
         echo -e "${CLR_INFO}Перезапускаем ноду...${CLR_RESET}"
         sudo systemctl daemon-reload
         sudo systemctl restart zgs
+        echo -e "${CLR_INFO}Нода перезапущена! Можете проверить статус и рост блоков!${CLR_RESET}"
     else
         echo -e "${CLR_ERROR}Ошибка: Файл конфигурации не найден!${CLR_RESET}"
     fi
