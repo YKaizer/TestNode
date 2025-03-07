@@ -14,9 +14,19 @@ function show_logo() {
     curl -s https://raw.githubusercontent.com/profitnoders/Profit_Nodes/refs/heads/main/logo_new.sh | bash
 }
 
+# Функция исправления конфликта containerd.io
+function fix_containerd_conflict() {
+    echo -e "${CLR_INFO}Проверяем наличие конфликта containerd...${CLR_RESET}"
+    if dpkg -l | grep -q "containerd "; then
+        echo -e "${CLR_WARNING}Обнаружен конфликт containerd! Удаляем...${CLR_RESET}"
+        sudo apt remove --purge containerd -y
+    fi
+}
+
 # Функция установки необходимых пакетов
 function install_dependencies() {
     sudo apt update -y && sudo apt upgrade -y
+    fix_containerd_conflict
     sudo apt install -y curl wget git docker.io
 }
 
@@ -76,7 +86,7 @@ function install_node() {
     mkdir -p ~/.titanedge
 
     echo -e "${CLR_INFO}Запускаем контейнер Titan...${CLR_RESET}"
-    docker run --runtime=containerd -d --network=host -v ~/.titanedge:/root/.titanedge nezha123/titan-edge
+    docker run -d --network=host -v ~/.titanedge:/root/.titanedge nezha123/titan-edge
 
     echo -e "${CLR_SUCCESS}✅ Установка завершена! Нода запущена.${CLR_RESET}"
 }
@@ -131,5 +141,4 @@ function show_menu() {
 
 # Запуск меню
 show_menu
-
 
