@@ -92,11 +92,15 @@ function insert_private_key() {
 
     if [[ -f "$CONFIG_FILE" ]]; then
         echo -e "${CLR_INFO}Записываем приватный ключ...${CLR_RESET}"
+        
         sed -i 's/# miner_key = "your key"/miner_key = "'"$MINER_KEY"'"/' "$CONFIG_FILE"
-
+        sed -i 's/# log_config_file = "log_config"/log_config_file = "log_config"/' "$CONFIG_FILE"
+        sed -i 's/# log_directory = "log"/log_directory = "log"/' "$CONFIG_FILE"
+        
         echo -e "${CLR_SUCCESS}✅ Приватный ключ успешно вставлен!${CLR_RESET}"
 
         echo -e "${CLR_INFO}Перезапускаем ноду...${CLR_RESET}"
+        sudo systemctl daemon-reload
         sudo systemctl restart zgs
     else
         echo -e "${CLR_ERROR}Ошибка: Файл конфигурации не найден!${CLR_RESET}"
