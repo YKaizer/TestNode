@@ -174,5 +174,35 @@ function remove_node() {
     fi
 }
 
+# Главное меню
+function show_menu() {
+    show_logo
+    echo -e "${CLR_INFO}Выберите действие:${CLR_RESET}"
+    echo -e "${CLR_GREEN}1) 🚀 Установить ноду${CLR_RESET}"
+    echo -e "${CLR_GREEN}2) 🔍 Проверить высоту логов и пиров${CLR_RESET}"
+    echo -e "${CLR_GREEN}3) 🔑 Вставить приватный ключ${CLR_RESET}"
+    echo -e "${CLR_GREEN}4) 📜 Просмотр логов${CLR_RESET}"
+    echo -e "${CLR_GREEN}5) 🔄 Перезапустить сервис и проверить статус${CLR_RESET}"
+    echo -e "${CLR_GREEN}6) 📖 Просмотр полных логов${CLR_RESET}"
+    echo -e "${CLR_GREEN}7) 🔄 Сменить RPC в конфиге${CLR_RESET}"
+    echo -e "${CLR_ERROR}8) 🗑️ Удалить ноду${CLR_RESET}"
+    echo -e "${CLR_GREEN}9) ❌ Выйти${CLR_RESET}"
+
+    read -p "Введите номер действия: " choice
+
+    case $choice in
+        1) install_node ;;
+        2) check_peers ;;
+        3) insert_private_key ;;
+        4) check_logs ;;
+        5) restart_service ;;
+        6) view_full_logs ;;
+        7) change_rpc ;;
+        8) remove_node ;;
+        9) echo -e "${CLR_SUCCESS}Выход...${CLR_RESET}" && exit 0 ;;
+        *) echo -e "${CLR_ERROR}Ошибка: Неверный выбор! Попробуйте снова.${CLR_RESET}" && show_menu ;;
+    esac
+}
+
 # Запуск меню
 show_menu
