@@ -118,7 +118,14 @@ function check_peers() {
 # Функция перезапуска сервиса
 function restart_service() {
     echo -e "${CLR_INFO}Перезапускаем сервис ноды ZeroGravity...${CLR_RESET}"
+    sudo systemctl daemon-reload  # Перезагружаем systemd, чтобы он учел изменения в сервисе
     sudo systemctl restart zgs
+}
+
+
+# Функция проверки статуса ноды
+function check_status() {
+    echo -e "${CLR_INFO}Проверяем статус ноды ZeroGravity...${CLR_RESET}"
     sudo systemctl status zgs --no-pager
 }
 
@@ -158,22 +165,6 @@ function change_rpc() {
     restart_service
 }
 
-# Функция удаления ноды с подтверждением
-function remove_node() {
-    echo -e "${CLR_WARNING}Вы уверены, что хотите удалить ноду? (y/n)${CLR_RESET}"
-    read -r CONFIRMATION
-    if [[ "$CONFIRMATION" == "y" ]]; then
-        sudo systemctl stop zgs
-        sudo systemctl disable zgs
-        rm -rf $HOME/0g-storage-node
-        sudo rm -rf /etc/systemd/system/zgs.service
-        sudo systemctl daemon-reload
-        echo -e "${CLR_SUCCESS}✅ Нода удалена!${CLR_RESET}"
-    else
-        echo -e "${CLR_SUCCESS}Операция отменена.${CLR_RESET}"
-    fi
-}
-
 # Главное меню
 function show_menu() {
     show_logo
@@ -181,12 +172,11 @@ function show_menu() {
     echo -e "${CLR_GREEN}1) 🚀 Установить ноду${CLR_RESET}"
     echo -e "${CLR_GREEN}2) 🔍 Проверить высоту логов и пиров${CLR_RESET}"
     echo -e "${CLR_GREEN}3) 🔑 Вставить приватный ключ${CLR_RESET}"
-    echo -e "${CLR_GREEN}4) 📜 Просмотр логов${CLR_RESET}"
-    echo -e "${CLR_GREEN}5) 🔄 Перезапустить сервис и проверить статус${CLR_RESET}"
+    echo -e "${CLR_GREEN}4) 🔄 Перезапустить сервис${CLR_RESET}"
+    echo -e "${CLR_GREEN}5) 📊 Проверить статус ноды${CLR_RESET}"
     echo -e "${CLR_GREEN}6) 📖 Просмотр полных логов${CLR_RESET}"
     echo -e "${CLR_GREEN}7) 🔄 Сменить RPC в конфиге${CLR_RESET}"
-    echo -e "${CLR_ERROR}8) 🗑️ Удалить ноду${CLR_RESET}"
-    echo -e "${CLR_GREEN}9) ❌ Выйти${CLR_RESET}"
+    echo -e "${CLR_GREEN}8) ❌ Выйти${CLR_RESET}"
 
     read -p "Введите номер действия: " choice
 
@@ -194,15 +184,15 @@ function show_menu() {
         1) install_node ;;
         2) check_peers ;;
         3) insert_private_key ;;
-        4) check_logs ;;
-        5) restart_service ;;
+        4) restart_service ;;
+        5) check_status ;;
         6) view_full_logs ;;
         7) change_rpc ;;
-        8) remove_node ;;
-        9) echo -e "${CLR_SUCCESS}Выход...${CLR_RESET}" && exit 0 ;;
+        8) echo -e "${CLR_SUCCESS}Выход...${CLR_RESET}" && exit 0 ;;
         *) echo -e "${CLR_ERROR}Ошибка: Неверный выбор! Попробуйте снова.${CLR_RESET}" && show_menu ;;
     esac
 }
 
 # Запуск меню
 show_menu
+
