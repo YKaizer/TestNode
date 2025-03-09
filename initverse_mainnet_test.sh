@@ -43,19 +43,7 @@ function install_node() {
     fi
 
     # Выбор пула
-    echo -e "${CLR_WARNING}Выберите пул для майнинга:${CLR_RESET}"
-    echo -e "${CLR_GREEN}1) Pool A (pool-a.yatespool.com:31588)${CLR_RESET}"
-    echo -e "${CLR_GREEN}2) Pool B (pool-b.yatespool.com:32488)${CLR_RESET}"
-    echo -e "${CLR_GREEN}3) Pool C (pool-c.yatespool.com:31189)${CLR_RESET}"
-
-    read -p "Введите номер пула (1/2/3): " POOL_CHOICE
-
-    case $POOL_CHOICE in
-        1) POOL_URL="pool-a.yatespool.com"; POOL_PORT="31588";;
-        2) POOL_URL="pool-b.yatespool.com"; POOL_PORT="32488";;
-        3) POOL_URL="pool-c.yatespool.com"; POOL_PORT="31189";;
-        *) echo -e "${CLR_ERROR}Ошибка: неверный выбор пула!${CLR_RESET}"; exit 1;;
-    esac
+    select_pool
 
     # Запись конфигурации в .env
     echo "WALLET=$WALLET" > "$HOME/initverse/.env"
@@ -76,6 +64,23 @@ function install_node() {
     sudo systemctl restart initverse
 
     echo -e "${CLR_SUCCESS}Нода InitVerse установлена и запущена на пуле $POOL_URL:$POOL_PORT с $CPU_CORES ядрами!${CLR_RESET}"
+}
+
+# Функция выбора пула
+function select_pool() {
+    echo -e "${CLR_WARNING}Выберите пул для майнинга:${CLR_RESET}"
+    echo -e "${CLR_GREEN}1) Pool A (pool-a.yatespool.com:31588)${CLR_RESET}"
+    echo -e "${CLR_GREEN}2) Pool B (pool-b.yatespool.com:32488)${CLR_RESET}"
+    echo -e "${CLR_GREEN}3) Pool C (pool-c.yatespool.com:31189)${CLR_RESET}"
+
+    read -p "Введите номер пула (1/2/3): " POOL_CHOICE
+
+    case $POOL_CHOICE in
+        1) POOL_URL="pool-a.yatespool.com"; POOL_PORT="31588";;
+        2) POOL_URL="pool-b.yatespool.com"; POOL_PORT="32488";;
+        3) POOL_URL="pool-c.yatespool.com"; POOL_PORT="31189";;
+        *) echo -e "${CLR_ERROR}Ошибка: неверный выбор пула!${CLR_RESET}"; exit 1;;
+    esac
 }
 
 # Функция создания systemd сервиса
@@ -139,6 +144,23 @@ function change_cpu_cores() {
     echo -e "${CLR_SUCCESS}Количество ядер изменено на $NEW_CPU_CORES!${CLR_RESET}"
 }
 
+# Функция изменения пула
+function change_pool() {
+    echo -e "${CLR_WARNING}Выберите новый пул:${CLR_RESET}"
+    select_pool
+
+    # Обновляем .env с новым пулом
+    sed -i "s|^POOL_URL=.*|POOL_URL=$POOL_URL|" $HOME/initverse/.env
+    sed -i "s|^POOL_PORT=.*|POOL_PORT=$POOL_PORT|" $HOME/initverse/.env
+
+    # Перезапускаем сервис
+    create_service
+    sudo systemctl daemon-reload
+    sudo systemctl restart initverse
+
+    echo -e "${CLR_SUCCESS}Пул изменён на $POOL_URL:$POOL_PORT!${CLR_RESET}"
+}
+
 # Просмотр логов
 function view_logs() {
     sudo journalctl -fu initverse.service
@@ -146,12 +168,18 @@ function view_logs() {
 
 # Удаление ноды
 function remove_node() {
-    sudo systemctl stop initverse
-    sudo systemctl disable initverse
-    sudo rm /etc/systemd/system/initverse.service
-    sudo systemctl daemon-reload
-    rm -rf $HOME/initverse
-    echo -e "${CLR_WARNING}Нода удалена.${CLR_RESET}"
+    echo -e "${CLR_WARNING}Вы уверены, что хотите удалить ноду? (y/n)${CLR_RESET}"
+    read -r CONFIRMATION
+    if [[ "$CONFIRMATION" == "y" ]]; then
+        sudo systemctl stop initverse
+        sudo systemctl disable initverse
+        sudo rm /etc/systemd/system/initverse.service
+        sudo systemctl daemon-reload
+        rm -rf $HOME/initverse
+        echo -e "${CLR_WARNING}Нода удалена.${CLR_RESET}"
+    else
+        echo -e "${CLR_SUCCESS}Операция отменена.${CLR_RESET}"
+    fi
 }
 
 # Главное меню
@@ -161,9 +189,10 @@ function show_menu() {
     echo -e "${CLR_GREEN}2) ▶ Запустить майнер${CLR_RESET}"
     echo -e "${CLR_GREEN}3) ⏹ Остановить майнер${CLR_RESET}"
     echo -e "${CLR_GREEN}4) 🔄 Изменить количество ядер${CLR_RESET}"
-    echo -e "${CLR_GREEN}5) 📜 Просмотр логов${CLR_RESET}"
-    echo -e "${CLR_GREEN}6) 🗑️ Удалить ноду${CLR_RESET}"
-    echo -e "${CLR_GREEN}7) ❌ Выйти${CLR_RESET}"
+    echo -e "${CLR_GREEN}5) 🌍 Сменить пул${CLR_RESET}"
+    echo -e "${CLR_GREEN}6) 📜 Просмотр логов${CLR_RESET}"
+    echo -e "${CLR_GREEN}7) 🗑️ Удалить ноду${CLR_RESET}"
+    echo -e "${CLR_GREEN}8) ❌ Выйти${CLR_RESET}"
 
     read -p "Выберите номер действия: " choice
 
@@ -172,14 +201,16 @@ function show_menu() {
         2) start_miner ;;
         3) stop_miner ;;
         4) change_cpu_cores ;;
-        5) view_logs ;;
-        6) remove_node ;;
-        7) exit 0 ;;
+        5) change_pool ;;
+        6) view_logs ;;
+        7) remove_node ;;
+        8) exit 0 ;;
         *) echo -e "${CLR_WARNING}Неверный выбор.${CLR_RESET}" && show_menu ;;
     esac
 }
 
 show_menu
+
 
 
 
