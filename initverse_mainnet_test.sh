@@ -42,10 +42,26 @@ function install_node() {
         exit 1
     fi
 
+    # Выбор пула
+    echo -e "${CLR_WARNING}Выберите пул для майнинга:${CLR_RESET}"
+    echo -e "${CLR_GREEN}1) Pool A (pool-a.yatespool.com)${CLR_RESET}"
+    echo -e "${CLR_GREEN}2) Pool B (pool-b.yatespool.com)${CLR_RESET}"
+    echo -e "${CLR_GREEN}3) Pool C (pool-c.yatespool.com)${CLR_RESET}"
+
+    read -p "Введите номер пула (1/2/3): " POOL_CHOICE
+
+    case $POOL_CHOICE in
+        1) POOL_URL="pool-a.yatespool.com";;
+        2) POOL_URL="pool-b.yatespool.com";;
+        3) POOL_URL="pool-c.yatespool.com";;
+        *) echo -e "${CLR_ERROR}Ошибка: неверный выбор пула!${CLR_RESET}"; exit 1;;
+    esac
+
     # Запись конфигурации в .env
     echo "WALLET=$WALLET" > "$HOME/initverse/.env"
     echo "MAINER_NAME=$MAINER_NAME" >> "$HOME/initverse/.env"
     echo "CPU_CORES=$CPU_CORES" >> "$HOME/initverse/.env"
+    echo "POOL_URL=$POOL_URL" >> "$HOME/initverse/.env"
 
     # Перечитываем переменные
     source $HOME/initverse/.env
@@ -58,7 +74,7 @@ function install_node() {
     sudo systemctl enable initverse
     sudo systemctl restart initverse
 
-    echo -e "${CLR_SUCCESS}Нода InitVerse установлена и запущена с $CPU_CORES ядрами!${CLR_RESET}"
+    echo -e "${CLR_SUCCESS}Нода InitVerse установлена и запущена на пуле $POOL_URL с $CPU_CORES ядрами!${CLR_RESET}"
 }
 
 # Функция создания systemd сервиса
@@ -81,7 +97,7 @@ After=network.target
 [Service]
 User=$(whoami)
 WorkingDirectory=$HOME/initverse
-ExecStart=/bin/bash -c 'source $HOME/initverse/.env && $HOME/initverse/iniminer-linux-x64 --pool stratum+tcp://$WALLET.$MAINER_NAME@pool-b.yatespool.com:32488$CPU_DEVICES'
+ExecStart=/bin/bash -c 'source $HOME/initverse/.env && $HOME/initverse/iniminer-linux-x64 --pool stratum+tcp://$WALLET.$MAINER_NAME@$POOL_URL:32488$CPU_DEVICES'
 Restart=on-failure
 
 [Install]
@@ -163,4 +179,5 @@ function show_menu() {
 }
 
 show_menu
+
 
