@@ -19,10 +19,13 @@ function install_dependencies() {
     echo -e "${CLR_INFO}Обновляем систему и устанавливаем пакеты...${CLR_RESET}"
     sudo apt update -y
     sudo apt install -y git curl jq build-essential docker.io docker-compose nano
+    echo -e "${CLR_INFO}Клонируем репозиторий Ritual...${CLR_RESET}"
+    git clone https://github.com/ritual-net/infernet-container-starter.git
+    cd infernet-container-starter
 }
 
 # Функция установки ноды Ritual
-function install_others() {
+function install_node() {
     install_dependencies
 
     echo -e "${CLR_INFO}Клонируем репозиторий Ritual...${CLR_RESET}"
