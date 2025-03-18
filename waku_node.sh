@@ -173,15 +173,15 @@ function remove_node() {
 # Главное меню
 function show_menu() {
     show_logo
-    echo -e "${CLR_GREEN} 1)\t🚀 Установить ноду ${CLR_RESET}"
-    echo -e "${CLR_GREEN} 2)\t📜 Просмотр логов ${CLR_RESET}"
-    echo -e "${CLR_GREEN} 3)\t🔄 Обновить ноду ${CLR_RESET}"
-    echo -e "${CLR_GREEN} 4)\t🔄 Перезапустить ноду ${CLR_RESET}"
-    echo -e "${CLR_GREEN} 5)\t🛠 Изменить NWAKU_IMAGE ${CLR_RESET}"
-    echo -e "${CLR_GREEN} 6)\t🔍 Проверить запущенные контейнеры ${CLR_RESET}"
-    echo -e "${CLR_GREEN} 7)\t🗑 Удалить ноду ${CLR_RESET}"
-    echo -e "${CLR_GREEN} 8)\t🩺 Проверить ноду (chkhealth.sh) ${CLR_RESET}"
-    echo -e "${CLR_GREEN} 9)\t❌ Выйти ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 1)🚀 Установить ноду ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 2)📜 Просмотр логов ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 3)🔄 Обновить ноду ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 4)🔄 Перезапустить ноду ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 5)🛠  Изменить NWAKU_IMAGE ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 6)🔍 Проверить запущенные контейнеры ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 7)🩺 Проверить ноду (chkhealth.sh) ${CLR_RESET}"
+    echo -e "${CLR_ERROR} 8)🗑  Удалить ноду ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 9)❌ Выйти ${CLR_RESET}"
 
     echo -e "${CLR_INFO}Выберите действие:${CLR_RESET}"
     read choice
@@ -193,8 +193,8 @@ function show_menu() {
         4) restart_docker_compose ;;
         5) change_nwaku_image ;;
         6) check_docker_containers ;;
-        7) remove_node ;;
-        8) check_node_health ;;
+        7) check_node_health ;;
+        8) remove_node ;;
         8) echo -e "${CLR_INFO}Выход...${CLR_RESET}" && exit 0 ;;
         *) echo -e "${CLR_INFO}Неверный выбор! Попробуйте снова.${CLR_RESET}" && show_menu ;;
     esac
