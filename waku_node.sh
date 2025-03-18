@@ -143,7 +143,7 @@ function check_docker_containers() {
 # Проверка состояния ноды Waku
 function check_node_health() {
     echo -e "${CLR_INFO}🔍 Запуск проверки состояния ноды...${CLR_RESET}"
-    cd $HOME/waku || { echo -e "${CLR_ERROR}❌ Ошибка: Директория $HOME/waku не найдена.${CLR_RESET}"; return; }
+    cd $HOME/nwaku-compose || { echo -e "${CLR_ERROR}❌ Ошибка: Директория $HOME/waku не найдена.${CLR_RESET}"; return; }
     ./chkhealth.sh
 }
 
