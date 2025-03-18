@@ -89,7 +89,6 @@ function install_node() {
     echo -e "${CLR_INFO}Создаем хранилище для ноды...${CLR_RESET}"
     mkdir -p ~/.titanedge
 
-    echo -e "${CLR_INFO}Меняем порт ноды с 1234 на 1235...${CLR_RESET}"
     echo -e "${CLR_INFO}Запускаем контейнер Titan для генерации конфигурации...${CLR_RESET}"
     docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge daemon start || true
 
