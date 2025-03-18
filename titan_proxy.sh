@@ -32,53 +32,53 @@ function install_docker() {
 }
 
 # Функция настройки прокси
-function configure_proxy() {
-    echo -e "${CLR_INFO}Настройка HTTP-прокси для Docker...${CLR_RESET}"
+# function configure_proxy() {
+#     echo -e "${CLR_INFO}Настройка HTTP-прокси для Docker...${CLR_RESET}"
 
-    read -p "Введите IP (оставьте пустым для пропуска): " PROXY_IP
-    read -p "Введите порт (оставьте пустым для пропуска): " PROXY_PORT
-    read -p "Введите логин (если нет, оставьте пустым): " PROXY_LOGIN
-    read -p "Введите пароль (если нет, оставьте пустым): " PROXY_PASS
+#     read -p "Введите IP (оставьте пустым для пропуска): " PROXY_IP
+#     read -p "Введите порт (оставьте пустым для пропуска): " PROXY_PORT
+#     read -p "Введите логин (если нет, оставьте пустым): " PROXY_LOGIN
+#     read -p "Введите пароль (если нет, оставьте пустым): " PROXY_PASS
 
-    # Проверяем, введены ли IP и порт
-    if [[ -z "$PROXY_IP" || -z "$PROXY_PORT" ]]; then
-        echo -e "${CLR_WARNING}⚠️ Прокси не настроен, так как не введены IP и порт.${CLR_RESET}"
-        return
-    fi
+#     # Проверяем, введены ли IP и порт
+#     if [[ -z "$PROXY_IP" || -z "$PROXY_PORT" ]]; then
+#         echo -e "${CLR_WARNING}⚠️ Прокси не настроен, так как не введены IP и порт.${CLR_RESET}"
+#         return
+#     fi
 
-    # Формируем прокси-URL (с логином/паролем, если они есть)
-    if [[ -n "$PROXY_LOGIN" && -n "$PROXY_PASS" ]]; then
-        PROXY_URL="http://${PROXY_LOGIN}:${PROXY_PASS}@${PROXY_IP}:${PROXY_PORT}"
-    else
-        PROXY_URL="http://${PROXY_IP}:${PROXY_PORT}"
-    fi
+#     # Формируем прокси-URL (с логином/паролем, если они есть)
+#     if [[ -n "$PROXY_LOGIN" && -n "$PROXY_PASS" ]]; then
+#         PROXY_URL="http://${PROXY_LOGIN}:${PROXY_PASS}@${PROXY_IP}:${PROXY_PORT}"
+#     else
+#         PROXY_URL="http://${PROXY_IP}:${PROXY_PORT}"
+#     fi
 
-    # Создаём конфигурацию прокси для Docker
-    sudo mkdir -p /etc/systemd/system/docker.service.d
-    echo "[Service]
-Environment=\"HTTP_PROXY=$PROXY_URL\"
-Environment=\"HTTPS_PROXY=$PROXY_URL\"
-Environment=\"FTP_PROXY=$PROXY_URL\"
-Environment=\"ALL_PROXY=$PROXY_URL\"
-Environment=\"NO_PROXY=localhost,127.0.0.1\"" | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf > /dev/null
+#     # Создаём конфигурацию прокси для Docker
+#     sudo mkdir -p /etc/systemd/system/docker.service.d
+#     echo "[Service]
+# Environment=\"HTTP_PROXY=$PROXY_URL\"
+# Environment=\"HTTPS_PROXY=$PROXY_URL\"
+# Environment=\"FTP_PROXY=$PROXY_URL\"
+# Environment=\"ALL_PROXY=$PROXY_URL\"
+# Environment=\"NO_PROXY=localhost,127.0.0.1\"" | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf > /dev/null
 
-    # Применяем изменения
-    sudo systemctl daemon-reload
-    sudo systemctl restart docker
+#     # Применяем изменения
+#     sudo systemctl daemon-reload
+#     sudo systemctl restart docker
 
-    echo -e "${CLR_SUCCESS}✅ Прокси успешно настроен!${CLR_RESET}"
-}
+#     echo -e "${CLR_SUCCESS}✅ Прокси успешно настроен!${CLR_RESET}"
+# }
 
 # Функция установки ноды Titan
 function install_node() {
     install_dependencies
     install_docker
 
-    echo -e "${CLR_INFO}Хотите настроить прокси для Docker? (y/n)${CLR_RESET}"
-    read -r USE_PROXY
-    if [[ "$USE_PROXY" == "y" ]]; then
-        configure_proxy
-    fi
+    # echo -e "${CLR_INFO}Хотите настроить прокси для Docker? (y/n)${CLR_RESET}"
+    # read -r USE_PROXY
+    # if [[ "$USE_PROXY" == "y" ]]; then
+    #     configure_proxy
+    # fi
 
     echo -e "${CLR_INFO}Удаляем старые данные ноды...${CLR_RESET}"
     rm -rf ~/.titanedge
