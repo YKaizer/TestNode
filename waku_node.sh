@@ -137,6 +137,14 @@ function restart_docker_compose() {
 function check_docker_containers() {
     echo -e "${CLR_INFO}Список запущенных контейнеров:${CLR_RESET}"
     docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
+
+}
+
+# Проверка состояния ноды Waku
+function check_node_health() {
+    echo -e "${CLR_INFO}🔍 Запуск проверки состояния ноды...${CLR_RESET}"
+    cd $HOME/waku || { echo -e "${CLR_ERROR}❌ Ошибка: Директория $HOME/waku не найдена.${CLR_RESET}"; return; }
+    ./chkhealth.sh
 }
 
 # Удаление ноды Waku с подтверждением
@@ -170,7 +178,8 @@ function show_menu() {
     echo -e "${CLR_GREEN} 5)\t🛠 Изменить NWAKU_IMAGE ${CLR_RESET}"
     echo -e "${CLR_GREEN} 6)\t🔍 Проверить запущенные контейнеры ${CLR_RESET}"
     echo -e "${CLR_GREEN} 7)\t🗑 Удалить ноду ${CLR_RESET}"
-    echo -e "${CLR_GREEN} 8)\t❌ Выйти ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 8)\t🩺 Проверить ноду (chkhealth.sh) ${CLR_RESET}"
+    echo -e "${CLR_GREEN} 9)\t❌ Выйти ${CLR_RESET}"
 
     echo -e "${CLR_INFO}Выберите действие:${CLR_RESET}"
     read choice
@@ -183,6 +192,7 @@ function show_menu() {
         5) change_nwaku_image ;;
         6) check_docker_containers ;;
         7) remove_node ;;
+        8) check_node_health ;;
         8) echo -e "${CLR_INFO}Выход...${CLR_RESET}" && exit 0 ;;
         *) echo -e "${CLR_INFO}Неверный выбор! Попробуйте снова.${CLR_RESET}" && show_menu ;;
     esac
