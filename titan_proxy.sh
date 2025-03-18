@@ -75,6 +75,9 @@ function install_node() {
     echo -e "${CLR_INFO}Создаем хранилище для ноды...${CLR_RESET}"
     mkdir -p ~/.titanedge
 
+    echo -e "${CLR_INFO}Меняем порт ноды с 1234 на 1235...${CLR_RESET}"
+    sed -i 's/#ListenAddress = "0.0.0.0:1234"/ListenAddress = "0.0.0.0:1235"/' ~/.titanedge/config.toml
+
     echo -e "${CLR_INFO}Запускаем контейнер Titan...${CLR_RESET}"
     docker run -d --network=host -v ~/.titanedge:/root/.titanedge nezha123/titan-edge
 
