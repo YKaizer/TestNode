@@ -34,21 +34,35 @@ function install_docker() {
 # Функция настройки прокси
 function configure_proxy() {
     echo -e "${CLR_INFO}Настройка HTTP-прокси для Docker...${CLR_RESET}"
-    read -p "Введите IP: " PROXY_IP
-    read -p "Введите порт: " PROXY_PORT
-    read -p "Введите логин: " PROXY_LOGIN
-    read -p "Введите пароль: " PROXY_PASS
 
-    PROXY_URL="http://${PROXY_LOGIN}:${PROXY_PASS}@${PROXY_IP}:${PROXY_PORT}"
+    read -p "Введите IP (оставьте пустым для пропуска): " PROXY_IP
+    read -p "Введите порт (оставьте пустым для пропуска): " PROXY_PORT
+    read -p "Введите логин (если нет, оставьте пустым): " PROXY_LOGIN
+    read -p "Введите пароль (если нет, оставьте пустым): " PROXY_PASS
 
-    # Создаем конфигурацию прокси для Docker
+    # Проверяем, введены ли IP и порт
+    if [[ -z "$PROXY_IP" || -z "$PROXY_PORT" ]]; then
+        echo -e "${CLR_WARNING}⚠️ Прокси не настроен, так как не введены IP и порт.${CLR_RESET}"
+        return
+    fi
+
+    # Формируем прокси-URL (с логином/паролем, если они есть)
+    if [[ -n "$PROXY_LOGIN" && -n "$PROXY_PASS" ]]; then
+        PROXY_URL="http://${PROXY_LOGIN}:${PROXY_PASS}@${PROXY_IP}:${PROXY_PORT}"
+    else
+        PROXY_URL="http://${PROXY_IP}:${PROXY_PORT}"
+    fi
+
+    # Создаём конфигурацию прокси для Docker
     sudo mkdir -p /etc/systemd/system/docker.service.d
     echo "[Service]
 Environment=\"HTTP_PROXY=$PROXY_URL\"
 Environment=\"HTTPS_PROXY=$PROXY_URL\"
+Environment=\"FTP_PROXY=$PROXY_URL\"
+Environment=\"ALL_PROXY=$PROXY_URL\"
 Environment=\"NO_PROXY=localhost,127.0.0.1\"" | sudo tee /etc/systemd/system/docker.service.d/http-proxy.conf > /dev/null
 
-    # Перезапуск Docker для применения настроек
+    # Применяем изменения
     sudo systemctl daemon-reload
     sudo systemctl restart docker
 
@@ -76,7 +90,15 @@ function install_node() {
     mkdir -p ~/.titanedge
 
     echo -e "${CLR_INFO}Меняем порт ноды с 1234 на 1235...${CLR_RESET}"
-    sed -i 's/#ListenAddress = "0.0.0.0:1234"/ListenAddress = "0.0.0.0:1235"/' ~/.titanedge/config.toml
+    echo -e "${CLR_INFO}Запускаем контейнер Titan для генерации конфигурации...${CLR_RESET}"
+    docker run --rm -it -v ~/.titanedge:/root/.titanedge nezha123/titan-edge daemon start || true
+
+    if [[ -f ~/.titanedge/config.toml ]]; then
+        echo -e "${CLR_INFO}Меняем порт ноды с 1234 на 1235...${CLR_RESET}"
+        sed -i 's/#ListenAddress = "0.0.0.0:1234"/ListenAddress = "0.0.0.0:1235"/' ~/.titanedge/config.toml
+    else
+        echo -e "${CLR_WARNING}⚠️ Файл config.toml не найден! Возможно, контейнер не запустился корректно.${CLR_RESET}"
+    fi
 
     echo -e "${CLR_INFO}Запускаем контейнер Titan...${CLR_RESET}"
     docker run -d --network=host -v ~/.titanedge:/root/.titanedge nezha123/titan-edge
