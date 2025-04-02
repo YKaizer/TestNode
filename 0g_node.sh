@@ -41,13 +41,13 @@ function install_node() {
     rm -rf $HOME/0g-storage-node
 
     echo -e "${CLR_INFO}Клонируем репозиторий...${CLR_RESET}"
-    git clone -b v0.8.4 https://github.com/0glabs/0g-storage-node.git
+    git clone -b v0.8.7 https://github.com/0glabs/0g-storage-node.git
     cd $HOME/0g-storage-node
 
     echo -e "${CLR_INFO}Скачиваем теги и обновляем подмодули...${CLR_RESET}"
     git stash
     git fetch --all --tags
-    git checkout 40d4355
+    git checkout be14ba6
     git submodule update --init
 
     echo -e "${CLR_INFO}Компилируем ноду...${CLR_RESET}"
