@@ -186,6 +186,23 @@ function remove_node() {
     fi
 }
 
+function update_node() {
+    echo "Updating 0g-storage-node..."
+    sudo systemctl stop zgs
+    cp $HOME/0g-storage-node/run/config.toml $HOME/0g-storage-node/run/config.toml.backup
+    cd $HOME/0g-storage-node
+    git stash
+    git fetch --all --tags
+    git checkout be14ba6
+    git submodule update --init
+    cargo build --release
+    cp $HOME/0g-storage-node/run/config.toml.backup $HOME/0g-storage-node/run/config.toml
+    sudo systemctl daemon-reload
+    sudo systemctl enable zgs
+    sudo systemctl start zgs
+    echo -e "${CLR_INFO}Нода успешно обновлена${CLR_RESET}"
+}
+
 # Главное меню
 function show_menu() {
     show_logo
@@ -198,7 +215,8 @@ function show_menu() {
     echo -e "${CLR_GREEN}6) 📖 Просмотр полных логов${CLR_RESET}"
     echo -e "${CLR_GREEN}7) 🔄 Сменить RPC в конфиге${CLR_RESET}"
     echo -e "${CLR_ERROR}8) 🗑️ Удалить ноду${CLR_RESET}"
-    echo -e "${CLR_GREEN}9) ❌ Выйти${CLR_RESET}"
+    echo -e "${CLR_GREEN}9) 💽 Обновить ноду${CLR_RESET}"
+    echo -e "${CLR_GREEN}10) ❌ Выйти${CLR_RESET}"
 
     read -p "Введите номер действия: " choice
 
@@ -211,7 +229,8 @@ function show_menu() {
         6) view_full_logs ;;
         7) change_rpc ;;
         8) remove_node ;;
-        9) echo -e "${CLR_SUCCESS}Выход...${CLR_RESET}" && exit 0 ;;
+        9) update_node ;;
+        10) echo -e "${CLR_SUCCESS}Выход...${CLR_RESET}" && exit 0 ;;
         *) echo -e "${CLR_ERROR}Ошибка: Неверный выбор! Попробуйте снова.${CLR_RESET}" && show_menu ;;
     esac
 }
