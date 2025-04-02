@@ -187,7 +187,7 @@ function remove_node() {
 }
 
 function update_node() {
-    echo "Updating 0g-storage-node..."
+    echo -e "${CLR_INFO}Обновляем 0G Storage Node${CLR_RESET}"
     sudo systemctl stop zgs
     cp $HOME/0g-storage-node/run/config.toml $HOME/0g-storage-node/run/config.toml.backup
     cd $HOME/0g-storage-node
