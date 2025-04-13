@@ -50,11 +50,23 @@ def get_ip_address():
     return socket.gethostbyname(socket.gethostname())
 
 def get_system_stats():
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage("/")
     return {
         "cpu_percent": psutil.cpu_percent(interval=1),
-        "memory": psutil.virtual_memory()._asdict(),
-        "disk": psutil.disk_usage("/")._asdict()
+        "cpu_cores": psutil.cpu_count(),
+        "memory": {
+            "percent": mem.percent,
+            "used": mem.used,
+            "total": mem.total
+        },
+        "disk": {
+            "percent": disk.percent,
+            "used": disk.used,
+            "total": disk.total
+        }
     }
+
 
 def get_docker_status():
     try:
