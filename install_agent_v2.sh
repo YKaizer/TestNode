@@ -44,7 +44,7 @@ AGENT_TOKEN = get_token()
 app = FastAPI()
 
 SERVICE_NAMES = ["initverse.service", "t3rn.service", "zgs.service", "cysic.service"]
-PROCESS_KEYWORDS = ["./pop", "wasmedge", "dill-node"]
+PROCESS_KEYWORDS = ["./pop", "wasmedge", "dill-node", "./multiple-node"]
 
 def get_ip_address():
     return socket.gethostbyname(socket.gethostname())
