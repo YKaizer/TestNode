@@ -28,7 +28,7 @@ import psutil, docker, subprocess
 
 app = FastAPI()
 SERVICE_NAMES = ["initverse.service", "t3rn.service", "zgs.service", "cysic.service"]
-PROCESS_KEYWORDS = ["./pop", "wasmedge", "dill-node"]
+PROCESS_KEYWORDS = ["./pop", "wasmedge", "dill-node", "python -m hivemind_exp.gsm8k.train_single_gpu", "./multiple-node"]
 
 def get_token():
     try:
