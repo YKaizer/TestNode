@@ -24,11 +24,25 @@ function install_agent() {
     cat > agent.py << 'EOF'
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
-import psutil, docker, subprocess
+import psutil, docker, subprocess, threading, time, requests, os, socket
 
 app = FastAPI()
-SERVICE_NAMES = ["initverse.service", "t3rn.service", "zgs.service", "cysic.service"]
-PROCESS_KEYWORDS = ["./pop", "wasmedge", "dill-node", "python -m hivemind_exp.gsm8k.train_single_gpu", "./multiple-node"]
+
+# === Настройки ===
+SERVICE_NAMES = [
+    "initverse.service", "t3rn.service", "zgs.service", "cysic.service"
+]
+PROCESS_KEYWORDS = [
+    "./pop", "wasmedge", "dill-node",
+    "python -m hivemind_exp.gsm8k.train_single_gpu",
+    "./multiple-node"
+]
+COMPOSE_PATH = os.path.expanduser("~/infernet-container-starter/deploy/docker-compose.yaml")
+BOT_ALERT_URL = "http://91.108.246.138:8080/alert"  # ЗАМЕНИ на IP бота
+ALERT_SENT = False
+CHECK_INTERVAL = 60  # в секундах
+
+# === Функции ===
 
 def get_token():
     try:
@@ -37,11 +51,25 @@ def get_token():
     except:
         return ""
 
+def get_ip_address():
+    return socket.gethostbyname(socket.gethostname())
+
 def get_system_stats():
+    mem = psutil.virtual_memory()
+    disk = psutil.disk_usage("/")
     return {
         "cpu_percent": psutil.cpu_percent(interval=1),
-        "memory": psutil.virtual_memory()._asdict(),
-        "disk": psutil.disk_usage("/")._asdict()
+        "cpu_cores": psutil.cpu_count(),
+        "memory": {
+            "percent": mem.percent,
+            "used": mem.used,
+            "total": mem.total
+        },
+        "disk": {
+            "percent": disk.percent,
+            "used": disk.used,
+            "total": disk.total
+        }
     }
 
 def get_docker_status():
@@ -83,6 +111,34 @@ def get_background_processes():
             continue
     return matched
 
+# === Фоновый мониторинг диска ===
+
+def monitor_disk():
+    global ALERT_SENT
+    while True:
+        disk = psutil.disk_usage("/")
+        percent = disk.percent
+
+        if percent >= 90 and not ALERT_SENT:
+            try:
+                requests.post(BOT_ALERT_URL, json={
+                    "token": get_token(),
+                    "ip": get_ip_address(),
+                    "percent": percent,
+                    "alert_id": f"{get_ip_address()}-{int(time.time())}"
+                })
+                os.system(f"docker-compose -f {COMPOSE_PATH} restart")
+                ALERT_SENT = True
+            except Exception as e:
+                print("Ошибка отправки алерта:", e)
+
+        elif percent < 88 and ALERT_SENT:
+            ALERT_SENT = False
+
+        time.sleep(CHECK_INTERVAL)
+
+# === Эндпоинты ===
+
 @app.post("/ping")
 async def ping(request: Request):
     data = await request.json()
@@ -105,6 +161,13 @@ async def update_token(request: Request):
     with open("token.txt", "w") as f:
         f.write(new_token.strip())
     return {"status": "updated"}
+
+# === Запуск ===
+
+if __name__ == "__main__":
+    threading.Thread(target=monitor_disk, daemon=True).start()
+    import uvicorn
+    uvicorn.run("agent:app", host="0.0.0.0", port=8844)
 EOF
 
     # Python окружение и зависимости
