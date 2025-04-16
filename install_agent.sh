@@ -25,6 +25,7 @@ function install_agent() {
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import psutil, docker, subprocess, threading, time, requests, os, socket
+from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
 
@@ -138,6 +139,25 @@ def monitor_disk():
         time.sleep(CHECK_INTERVAL)
 
 # === Эндпоинты ===
+
+@app.post("/logs_services")
+async def get_service_logs(request: Request):
+    data = await request.json()
+    if data.get("token") != get_token():
+        return JSONResponse(content={"error": "unauthorized"}, status_code=403)
+
+    service = data.get("service")
+    if not service:
+        return JSONResponse(content={"error": "missing service name"}, status_code=400)
+
+    try:
+        logs = subprocess.check_output(
+            ["journalctl", "-u", service, "-n", "50", "--no-pager"],
+            text=True
+        )
+        return PlainTextResponse(logs)
+    except subprocess.CalledProcessError:
+        return PlainTextResponse("⚠️ Не удалось получить логи", status_code=500)
 
 @app.post("/ping")
 async def ping(request: Request):
