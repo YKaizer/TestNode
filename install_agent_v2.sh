@@ -127,6 +127,18 @@ def get_background_processes():
             continue
     return matched
 
+def restart_in_screen():
+    screen_name = "ritual"
+    try:
+        print("📦 Останавливаю docker-compose...")
+        subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
+        print("🧼 Завершаю все screen-сессии 'ritual'...")
+        subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
+        print("🚀 Запускаю в новом screen...")
+        subprocess.call(["screen", "-dmS", screen_name, "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
+    except Exception as e:
+        print(f"❌ Ошибка при перезапуске в screen: {e}")
+
 # === Фоновый мониторинг диска ===
 
 def monitor_disk():
@@ -143,7 +155,7 @@ def monitor_disk():
                     "percent": percent,
                     "alert_id": f"{get_ip_address()}-{int(time.time())}"
                 })
-                os.system(f"docker-compose -f {COMPOSE_PATH} restart")
+                restart_in_screen()
                 ALERT_SENT = True
             except Exception as e:
                 print("Ошибка отправки алерта:", e)
