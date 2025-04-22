@@ -189,7 +189,8 @@ def detect_installed_nodes():
         "Multiple": "./multiple-node",
         "Dill Light Validator": "--light",
         "Dill Full Validator": "/root/dill/dill-node",
-        "Gaia": "wasmedge"
+        "Gaia": "wasmedge",
+        "Gensyn": "python -m hivemind_exp.gsm8k"
     }
 
     for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
