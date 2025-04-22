@@ -202,7 +202,7 @@ def monitor_disk():
         disk = psutil.disk_usage("/")
         percent = disk.percent
 
-        if percent >= 90 and not ALERT_SENT:
+        if percent >= 80 and not ALERT_SENT:
             try:
                 requests.post(BOT_ALERT_URL, json={
                     "token": get_token(),
@@ -214,7 +214,7 @@ def monitor_disk():
             except Exception as e:
                 print("Ошибка отправки алерта:", e)
 
-        elif percent < 88 and ALERT_SENT:
+        elif percent < 78 and ALERT_SENT:
             ALERT_SENT = False
 
         time.sleep(CHECK_INTERVAL)
