@@ -165,6 +165,85 @@ def monitor_disk():
 
         time.sleep(CHECK_INTERVAL)
 
+def detect_installed_nodes():
+    result = []
+
+    # 1. Systemd
+    systemd_map = {
+        "Cysic": "cysic.service",
+        "Initverse": "initverse.service",
+        "t3rn": "t3rn.service",
+        "Pipe": "pipe-node.service",
+        "0G": "zgs.service"
+    }
+
+    for name, service in systemd_map.items():
+        try:
+            subprocess.check_output(["systemctl", "is-active", service], stderr=subprocess.DEVNULL)
+            result.append(name)
+        except subprocess.CalledProcessError:
+            pass
+
+    # 2. Processes
+    process_checks = {
+        "Multiple": "./multiple-node",
+        "Dill Light Validator": "--light",
+        "Dill Full Validator": "/root/dill/dill-node",
+        "Gaia": "wasmedge"
+    }
+
+    for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+        try:
+            cmd = " ".join(proc.info['cmdline'])
+            for name, keyword in process_checks.items():
+                if keyword in cmd:
+                    result.append(name)
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            continue
+
+    # 3. Screen
+    try:
+        screens = subprocess.check_output(["screen", "-ls"], text=True)
+        if "gaia_bot" in screens:
+            result.append("Gaia")
+        if "dria_node" in screens:
+            result.append("Dria")
+    except:
+        pass
+
+    # 4. Docker
+    try:
+        client = docker.from_env()
+        containers = client.containers.list()
+        names = [c.name for c in containers]
+        images = [c.image.tags[0] if c.image.tags else "" for c in containers]
+
+        # Ritual
+        ritual_expected = {"hello-world", "infernet-anvil", "infernet-fluentbit", "infernet-redis", "infernet-node"}
+        if ritual_expected.issubset(set(names)):
+            result.append("Ritual")
+
+        # Biconomy
+        if {"mee-node-deployment-node-1", "mee-node-deployment-redis-1"}.issubset(set(names)):
+            result.append("Biconomy")
+
+        # Unichain
+        if {"unichain-node-op-node-1", "unichain-node-execution-client-1"}.issubset(set(names)):
+            result.append("Unichain")
+
+        # Spheron
+        if "fizz-node" in names:
+            result.append("Spheron")
+
+        # Titan
+        if any("nezha123/titan-edge" in img for img in images):
+            result.append("Titan")
+
+    except Exception as e:
+        print("⚠️ Docker check failed:", e)
+
+    return sorted(set(result))
+
 # === Эндпоинты ===
 
 @app.post("/logs_services")
@@ -208,6 +287,16 @@ async def update_token(request: Request):
     with open("token.txt", "w") as f:
         f.write(new_token.strip())
     return {"status": "updated"}
+
+@app.post("/nodes")
+async def nodes_info(request: Request):
+    data = await request.json()
+    if data.get("token") != get_token():
+        return JSONResponse(status_code=403, content={"error": "unauthorized"})
+
+    nodes = detect_installed_nodes()
+    return {"nodes": nodes}
+
 
 # === Запуск ===
 
