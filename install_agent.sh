@@ -356,7 +356,7 @@ def monitor_disk():
                 up_result = subprocess.call(
                     ["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"]
                 )
-                await asyncio.sleep(20)
+                time.sleep(20)
                 if down_result == 0 and up_result == 0:
                     print("✅ Ritual перезапущен успешно.")
                 else:
