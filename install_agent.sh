@@ -342,8 +342,15 @@ def monitor_disk():
         if ritual_detected and percent > 80:
             try:
                 print("📦 Диск > 80% и Ritual найден — перезапуск...")
+
+                # Остановка docker-compose
                 subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
-                subprocess.call(["screen", "-S", "ritual", "-dm", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
+
+                # Завершение всех screen-сессий с именем 'ritual'
+                subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
+
+                # Запуск в новой screen-сессии
+                subprocess.call(["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
             except Exception as e:
                 print("❌ Ошибка перезапуска Ritual:", e)
 
@@ -364,7 +371,6 @@ def monitor_disk():
             ALERT_SENT = False
 
         time.sleep(CHECK_INTERVAL)
-
 
 # === Эндпоинты ===
 @app.post("/ping")
