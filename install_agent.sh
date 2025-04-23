@@ -356,7 +356,7 @@ def monitor_disk():
                 up_result = subprocess.call(
                     ["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"]
                 )
-
+                await asyncio.sleep(20)
                 if down_result == 0 and up_result == 0:
                     print("✅ Ritual перезапущен успешно.")
                 else:
@@ -490,14 +490,15 @@ async def restart_ritual_endpoint(request: Request):
         await asyncio.sleep(80)
         subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
         up_result = subprocess.call(["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
-
+        await asyncio.sleep(20)
         if down_result == 0 and up_result == 0:
             return {"status": "ok", "message": "Ritual успешно перезапущен"}
         else:
             return {"status": "fail", "message": "Ошибка при перезапуске docker-compose"}
 
     except Exception as e:
-        return {"status": "fail", "message": f"❌ Исключение: {e}"}
+        print("❌ Ошибка в /restart_ritual:", e)
+        return JSONResponse(status_code=500, content={"status": "fail", "message": str(e)})
 
 
 # === Запуск ===
