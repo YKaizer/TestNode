@@ -487,7 +487,7 @@ async def restart_ritual_endpoint(request: Request):
 
         # Перезапуск Ritual
         down_result = subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
-        await asyncio.sleep(80)
+        await asyncio.sleep(30)
         subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
         up_result = subprocess.call(["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
         await asyncio.sleep(20)
