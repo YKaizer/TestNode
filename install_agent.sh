@@ -117,19 +117,7 @@ def mark_alert(name: str, status: bool):
 
 def get_system_stats():
     mem = psutil.virtual_memory()
-    total_disk = used_disk = 0
-
-    # Суммируем все разделы кроме tmpfs и loop
-    for part in psutil.disk_partitions(all=False):
-        if 'rw' in part.opts and not part.device.startswith('/dev/loop') and 'tmpfs' not in part.fstype:
-            try:
-                usage = psutil.disk_usage(part.mountpoint)
-                total_disk += usage.total
-                used_disk += usage.used
-            except:
-                continue
-
-    disk_percent = round(used_disk / total_disk * 100, 1) if total_disk > 0 else 0
+    disk = psutil.disk_usage("/")  # Только root
 
     return {
         "cpu_percent": psutil.cpu_percent(interval=1),
@@ -140,11 +128,12 @@ def get_system_stats():
             "total": mem.total
         },
         "disk": {
-            "percent": disk_percent,
-            "used": used_disk,
-            "total": total_disk
+            "percent": disk.percent,
+            "used": disk.used,
+            "total": disk.total
         }
     }
+
 
 def get_docker_status():
     try:
