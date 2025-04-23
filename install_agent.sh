@@ -253,14 +253,15 @@ def get_installed_nodes():
     return sorted(set(result))
 
 # === Мониторинг ===
-def send_alert(name: str):
+def send_alert(name: str, custom_message: str = None):
     try:
-        requests.post(BOT_ALERT_URL, json={
+        payload = {
             "token": get_token(),
             "ip": get_ip_address(),
-            "message": f"❌ Упала нода: {name}",
-            "alert_id": f"{name}-{int(time.time())}"
-        })
+            "alert_id": f"{name}-{int(time.time())}",
+            "message": custom_message or f"❌ Упала нода: {name}"
+        }
+        requests.post(BOT_ALERT_URL, json=payload)
         print(f"🔔 Алерт отправлен: {name}")
     except Exception as e:
         print("Ошибка отправки алерта:", e)
@@ -456,6 +457,24 @@ async def set_alert_mode(request: Request):
     save_alerts_enabled(ALERTS_ENABLED)
     print(f"Уведомления об упавших нодах [FALL ALERTS MODE] updated: {'ENABLED ✅' if ALERTS_ENABLED else 'DISABLED ❌'}")
     return {"status": "ok", "alerts_enabled": ALERTS_ENABLED}
+
+@app.post("/restart_ritual")
+async def restart_ritual(request: Request):
+    data = await request.json()
+    if data.get("token") != get_token():
+        return JSONResponse(content={"error": "unauthorized"}, status_code=403)
+
+    try:
+        subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
+        subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
+        subprocess.call(["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
+
+        send_alert("ritual_manual", "✅ Ritual был перезапущен вручную через Telegram")
+        return {"status": "ok"}
+
+    except Exception as e:
+        send_alert("ritual_manual", f"❌ Ошибка при ручном перезапуске Ritual:\n{e}")
+        return {"status": "error", "details": str(e)}
 
 
 # === Запуск ===
