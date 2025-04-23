@@ -468,14 +468,10 @@ async def restart_ritual(request: Request):
         subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
         subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
         subprocess.call(["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
-
-        send_alert("ritual_manual", "✅ Ritual был перезапущен вручную через Telegram")
         return {"status": "ok"}
-
     except Exception as e:
-        send_alert("ritual_manual", f"❌ Ошибка при ручном перезапуске Ritual:\n{e}")
+        print("❌ Ошибка ручного перезапуска:", e)
         return {"status": "error", "details": str(e)}
-
 
 # === Запуск ===
 if __name__ == "__main__":
