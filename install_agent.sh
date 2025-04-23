@@ -95,26 +95,29 @@ def get_ip_address():
 
 # === SQLite ===
 def init_alert_db():
-    with sqlite3.connect(ALERT_DB_PATH) as conn:
-        # Таблица алертов по нодам
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS alerts (
-                name TEXT PRIMARY KEY,
-                active INTEGER DEFAULT 0,
-                last_alert INTEGER DEFAULT 0
-            )
-        """)
-        # Новая таблица настроек
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS settings (
-                key TEXT PRIMARY KEY,
-                value TEXT
-            )
-        """)
-        # Вставка по умолчанию (если нет)
-        conn.execute("""
-            INSERT OR IGNORE INTO settings (key, value) VALUES ('alerts_enabled', '1')
-        """)
+    try:
+        print("🛠 Создаю/проверяю базу данных...")
+        with sqlite3.connect(ALERT_DB_PATH) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS alerts (
+                    name TEXT PRIMARY KEY,
+                    active INTEGER DEFAULT 0,
+                    last_alert INTEGER DEFAULT 0
+                )
+            """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS settings (
+                    key TEXT PRIMARY KEY,
+                    value TEXT
+                )
+            """)
+            conn.execute("""
+                INSERT OR IGNORE INTO settings (key, value) VALUES ('alerts_enabled', '1')
+            """)
+        print("✅ База данных и таблицы созданы.")
+    except Exception as e:
+        print(f"❌ Ошибка при инициализации БД: {e}")
+
 
 def load_alerts_enabled():
     global ALERTS_ENABLED
