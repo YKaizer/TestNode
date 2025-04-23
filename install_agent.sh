@@ -476,6 +476,16 @@ async def restart_ritual_endpoint(request: Request):
         return JSONResponse(status_code=403, content={"error": "unauthorized"})
 
     try:
+        # Проверка наличия Ritual
+        client = docker.from_env()
+        containers = {c.name for c in client.containers.list()}
+        ritual_expected = {"hello-world", "infernet-node", "infernet-anvil", "infernet-fluentbit", "infernet-redis"}
+        ritual_detected = len(ritual_expected & containers) >= 3
+
+        if not ritual_detected:
+            return {"status": "fail", "message": "⛔ На сервере не обнаружено ноды Ritual"}
+
+        # Перезапуск Ritual
         down_result = subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
         await asyncio.sleep(80)
         subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
