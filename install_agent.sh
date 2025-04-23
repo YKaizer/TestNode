@@ -330,6 +330,7 @@ def monitor_disk():
         percent = disk.percent
 
         # ⚠️ Проверка наличия ноды Ritual
+        ritual_detected = False
         try:
             client = docker.from_env()
             containers = {c.name for c in client.containers.list()}
@@ -337,7 +338,6 @@ def monitor_disk():
             ritual_detected = len(ritual_containers & containers) >= 3
         except Exception as e:
             print("Ошибка проверки Docker:", e)
-            ritual_detected = False
 
         # 🔁 Перезапуск Ritual если диск > 80%
         if ritual_detected and percent > 80:
@@ -345,13 +345,21 @@ def monitor_disk():
                 print("📦 Диск > 80% и Ritual найден — перезапуск...")
 
                 # Остановка docker-compose
-                subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
+                down_result = subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
 
                 # Завершение всех screen-сессий с именем 'ritual'
                 subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
 
-                # Запуск в новой screen-сессии
-                subprocess.call(["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
+                # Запуск docker-compose в новой screen-сессии
+                up_result = subprocess.call(
+                    ["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"]
+                )
+
+                if down_result == 0 and up_result == 0:
+                    print("✅ Ritual перезапущен успешно.")
+                else:
+                    print("⚠️ Перезапуск Ritual завершился с ошибками.")
+
             except Exception as e:
                 print("❌ Ошибка перезапуска Ritual:", e)
 
@@ -372,6 +380,7 @@ def monitor_disk():
             ALERT_SENT = False
 
         time.sleep(CHECK_INTERVAL)
+
 
 # === Эндпоинты ===
 @app.post("/ping")
@@ -459,19 +468,24 @@ async def set_alert_mode(request: Request):
     return {"status": "ok", "alerts_enabled": ALERTS_ENABLED}
 
 @app.post("/restart_ritual")
-async def restart_ritual(request: Request):
+async def restart_ritual_endpoint(request: Request):
     data = await request.json()
     if data.get("token") != get_token():
-        return JSONResponse(content={"error": "unauthorized"}, status_code=403)
+        return JSONResponse(status_code=403, content={"error": "unauthorized"})
 
     try:
-        subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
+        down_result = subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
         subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
-        subprocess.call(["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
-        return {"status": "ok"}
+        up_result = subprocess.call(["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
+
+        if down_result == 0 and up_result == 0:
+            return {"status": "ok", "message": "Ritual успешно перезапущен"}
+        else:
+            return {"status": "fail", "message": "Ошибка при перезапуске docker-compose"}
+
     except Exception as e:
-        print("❌ Ошибка ручного перезапуска:", e)
-        return {"status": "error", "details": str(e)}
+        return {"status": "fail", "message": f"❌ Исключение: {e}"}
+
 
 # === Запуск ===
 if __name__ == "__main__":
