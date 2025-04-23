@@ -12,6 +12,7 @@ AGENT_DIR="/root/agent"
 TOKEN_FILE="$AGENT_DIR/token.txt"
 SERVICE_FILE="/etc/systemd/system/agent.service"
 
+
 # === Логотип ===
 function show_logo() {
     echo -e "${CLR_INFO}   Добро пожаловать в установщик Agent Monitor   ${CLR_RESET}"
@@ -46,6 +47,7 @@ import asyncio
 app = FastAPI()
 CHECK_INTERVAL = 60
 ALERTS_ENABLED = True
+ALERT_SENT = False
 BOT_ALERT_URL = "http://91.108.246.138:8080/alert"
 ALERT_DB_PATH = os.path.join(os.path.dirname(__file__), "alerts.db")
 COMPOSE_PATH = os.path.expanduser("~/infernet-container-starter/deploy/docker-compose.yaml")
@@ -320,7 +322,7 @@ def monitor_nodes():
         all_nodes = set(NODE_SYSTEMD) | set(NODE_PROCESSES) | set(NODE_SCREENS) | set(NODE_DOCKER_CONTAINERS) | set(NODE_DOCKER_IMAGES)
 
         for name in failed:
-            if not was_already_reported(name):
+            if not was_already_reported(name) and ALERTS_ENABLED:
                 send_alert(name)
                 mark_alert(name, True)
 
