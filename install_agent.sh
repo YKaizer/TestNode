@@ -91,6 +91,7 @@ def get_ip_address():
 # === SQLite ===
 def init_alert_db():
     with sqlite3.connect(ALERT_DB_PATH) as conn:
+        # Таблица алертов по нодам
         conn.execute("""
             CREATE TABLE IF NOT EXISTS alerts (
                 name TEXT PRIMARY KEY,
@@ -98,6 +99,35 @@ def init_alert_db():
                 last_alert INTEGER DEFAULT 0
             )
         """)
+        # Новая таблица настроек
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
+        # Вставка по умолчанию (если нет)
+        conn.execute("""
+            INSERT OR IGNORE INTO settings (key, value) VALUES ('alerts_enabled', '1')
+        """)
+
+def load_alerts_enabled():
+    global ALERTS_ENABLED
+    try:
+        with sqlite3.connect(ALERT_DB_PATH) as conn:
+            cursor = conn.execute("SELECT value FROM settings WHERE key = 'alerts_enabled'")
+            row = cursor.fetchone()
+            ALERTS_ENABLED = row and row[0] == '1'
+    except:
+        ALERTS_ENABLED = True
+
+def save_alerts_enabled(flag: bool):
+    with sqlite3.connect(ALERT_DB_PATH) as conn:
+        conn.execute("""
+            INSERT INTO settings (key, value)
+            VALUES ('alerts_enabled', ?)
+            ON CONFLICT(key) DO UPDATE SET value=excluded.value
+        """, ('1' if flag else '0',))
 
 def was_already_reported(name: str) -> bool:
     with sqlite3.connect(ALERT_DB_PATH) as conn:
@@ -414,6 +444,7 @@ async def get_docker_logs(request: Request):
 # === Запуск ===
 if __name__ == "__main__":
     init_alert_db()
+    load_alerts_enabled()
     threading.Thread(target=monitor_nodes, daemon=True).start()
     threading.Thread(target=monitor_disk, daemon=True).start()
     import uvicorn
