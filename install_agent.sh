@@ -506,13 +506,16 @@ async def restart_ritual_endpoint(request: Request):
         print("❌ Ошибка в /restart_ritual:", e)
         return JSONResponse(status_code=500, content={"status": "fail", "message": str(e)})
 
-
 # === Запуск ===
-if __name__ == "__main__":
+
+@app.on_event("startup")
+async def startup_event():
     init_alert_db()
     load_alerts_enabled()
     threading.Thread(target=monitor_nodes, daemon=True).start()
     threading.Thread(target=monitor_disk, daemon=True).start()
+
+if __name__ == "__main__":
     import uvicorn
     uvicorn.run("agent:app", host="0.0.0.0", port=8844)
 EOF
