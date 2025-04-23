@@ -41,6 +41,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 import psutil, docker, subprocess, threading, time, requests, os, socket, sqlite3
 from fastapi.responses import PlainTextResponse
+import asyncio
 
 app = FastAPI()
 CHECK_INTERVAL = 60
@@ -347,6 +348,7 @@ def monitor_disk():
                 # Остановка docker-compose
                 down_result = subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
 
+                time.sleep(80)
                 # Завершение всех screen-сессий с именем 'ritual'
                 subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
 
@@ -475,6 +477,7 @@ async def restart_ritual_endpoint(request: Request):
 
     try:
         down_result = subprocess.call(["docker-compose", "-f", COMPOSE_PATH, "down"])
+        await asyncio.sleep(80)
         subprocess.call("for s in $(screen -ls | grep ritual | awk '{print $1}'); do screen -S $s -X quit; done", shell=True)
         up_result = subprocess.call(["screen", "-dmS", "ritual", "bash", "-c", f"docker-compose -f {COMPOSE_PATH} up"])
 
