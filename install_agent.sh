@@ -44,6 +44,7 @@ from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
 CHECK_INTERVAL = 60
+ALERTS_ENABLED = True
 BOT_ALERT_URL = "http://91.108.246.138:8080/alert"
 ALERT_DB_PATH = os.path.join(os.path.dirname(__file__), "alerts.db")
 COMPOSE_PATH = os.path.expanduser("~/infernet-container-starter/docker-compose.yaml")
@@ -439,6 +440,16 @@ async def get_docker_logs(request: Request):
         return PlainTextResponse(logs)
     except subprocess.CalledProcessError:
         return PlainTextResponse(f"⚠️ Не удалось получить логи контейнера `{container}`", status_code=500)
+
+@app.post("/set_alert_mode")
+async def set_alert_mode(request: Request):
+    global ALERTS_ENABLED
+    data = await request.json()
+    enabled = data.get("enabled", True)
+    ALERTS_ENABLED = bool(enabled)
+    save_alerts_enabled(ALERTS_ENABLED)
+    print(f"Уведомления об упавших нодах [FALL ALERTS MODE] updated: {'ENABLED ✅' if ALERTS_ENABLED else 'DISABLED ❌'}")
+    return {"status": "ok", "alerts_enabled": ALERTS_ENABLED}
 
 
 # === Запуск ===
