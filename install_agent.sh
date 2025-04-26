@@ -250,8 +250,12 @@ def get_installed_nodes():
         images = [img for c in containers for img in c.image.tags if c.image.tags]
 
         for name, expected in NODE_DOCKER_CONTAINERS.items():
-            if expected.issubset(names):
-                result.append(name)
+            if name == "Ritual":
+                if len(expected & names) >= 3:
+                    result.append(name)
+            else:
+                if expected.issubset(names):
+                    result.append(name)
 
         for name, img_pattern in NODE_DOCKER_IMAGES.items():
             if any(img_pattern in img for img in images):
@@ -278,12 +282,12 @@ def send_alert(name: str, custom_message: str = None):
 def monitor_nodes():
     print("🔍 Запускаю мониторинг нод...")
     installed_nodes = set(get_installed_nodes())
-    print(f"🛠 Найденные ноды для мониторинга: {installed_nodes}")
+    print(f"🧩 Установленные ноды для мониторинга: {installed_nodes}")
 
     while True:
         failed = set()
 
-        # Проверка установленных systemd сервисов
+        # === Systemd
         for name in installed_nodes:
             if name in NODE_SYSTEMD:
                 service = NODE_SYSTEMD[name]
@@ -294,30 +298,35 @@ def monitor_nodes():
                 except subprocess.CalledProcessError:
                     failed.add(name)
 
-        # Проверка установленных docker-контейнеров
+        # === Docker
         try:
             client = docker.from_env()
-            running = {c.name for c in client.containers.list()}
+            containers = client.containers.list()
+            running = {c.name for c in containers}
+            tags = [tag for c in containers for tag in c.image.tags if c.image.tags]
+
             for name in installed_nodes:
                 if name in NODE_DOCKER_CONTAINERS:
                     expected = NODE_DOCKER_CONTAINERS[name]
                     if not expected.issubset(running):
                         failed.add(name)
+
                 if name in NODE_DOCKER_IMAGES:
-                    img_pattern = NODE_DOCKER_IMAGES[name]
-                    if not any(img_pattern in (tag or "") for c in client.containers.list() for tag in c.image.tags):
+                    pattern = NODE_DOCKER_IMAGES[name]
+                    if not any(pattern in tag for tag in tags):
                         failed.add(name)
+
         except Exception as e:
             print("⚠️ Docker check failed:", e)
 
-        # Проверка процессов
+        # === Процессы
         active = set()
         for p in psutil.process_iter(['cmdline']):
             try:
                 cmd = " ".join(p.info['cmdline'])
-                for process_name, keyword in NODE_PROCESSES.items():
-                    if process_name in installed_nodes and keyword in cmd:
-                        active.add(process_name)
+                for proc_name, keyword in NODE_PROCESSES.items():
+                    if proc_name in installed_nodes and keyword in cmd:
+                        active.add(proc_name)
             except Exception:
                 continue
 
@@ -325,7 +334,7 @@ def monitor_nodes():
             if name in NODE_PROCESSES and name not in active:
                 failed.add(name)
 
-        # Проверка screen-сессий
+        # === Screen-сессии
         try:
             screens = subprocess.check_output(["screen", "-ls"], text=True)
             for name in installed_nodes:
@@ -333,10 +342,19 @@ def monitor_nodes():
                     session = NODE_SCREENS[name]
                     if session not in screens:
                         failed.add(name)
-        except:
-            pass
+        except Exception as e:
+            print("⚠️ Ошибка при проверке screen:", e)
 
-        # Алерты
+        # === Особый случай: Gaia требует screen отдельно
+        if "Gaia" in installed_nodes:
+            try:
+                screens = subprocess.check_output(["screen", "-ls"], text=True)
+                if NODE_SCREENS["Gaia"] not in screens:
+                    failed.add("Gaia")
+            except Exception as e:
+                failed.add("Gaia")
+
+        # === Отправка алертов
         for name in failed:
             if ALERTS_ENABLED and not was_already_reported(name):
                 send_alert(name)
