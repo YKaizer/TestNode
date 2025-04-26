@@ -46,7 +46,7 @@ import asyncio
 
 app = FastAPI()
 CHECK_INTERVAL = 60
-ALERTS_ENABLED = True
+ALERTS_ENABLED = False
 ALERT_SENT = False
 BOT_ALERT_URL = "http://91.108.246.138:8080/alert"
 ALERT_DB_PATH = os.path.join(os.path.dirname(__file__), "alerts.db")
