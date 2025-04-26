@@ -276,57 +276,73 @@ def send_alert(name: str, custom_message: str = None):
         print("Ошибка отправки алерта:", e)
 
 def monitor_nodes():
+    print("🔍 Запускаю мониторинг нод...")
+    installed_nodes = set(get_installed_nodes())
+    print(f"🛠 Найденные ноды для мониторинга: {installed_nodes}")
+
     while True:
-        failed = []
+        failed = set()
 
-        for name, service in NODE_SYSTEMD.items():
-            try:
-                if subprocess.check_output(["systemctl", "is-active", service], text=True).strip() != "active":
-                    failed.append(name)
-            except:
-                failed.append(name)
+        # Проверка установленных systemd сервисов
+        for name in installed_nodes:
+            if name in NODE_SYSTEMD:
+                service = NODE_SYSTEMD[name]
+                try:
+                    status = subprocess.check_output(["systemctl", "is-active", service], text=True).strip()
+                    if status != "active":
+                        failed.add(name)
+                except subprocess.CalledProcessError:
+                    failed.add(name)
 
+        # Проверка установленных docker-контейнеров
         try:
             client = docker.from_env()
             running = {c.name for c in client.containers.list()}
-            for name, expected in NODE_DOCKER_CONTAINERS.items():
-                if not expected.issubset(running):
-                    failed.append(name)
-            for name, img in NODE_DOCKER_IMAGES.items():
-                if not any(img in (tag or "") for c in client.containers.list() for tag in c.image.tags):
-                    failed.append(name)
-        except:
-            pass
+            for name in installed_nodes:
+                if name in NODE_DOCKER_CONTAINERS:
+                    expected = NODE_DOCKER_CONTAINERS[name]
+                    if not expected.issubset(running):
+                        failed.add(name)
+                if name in NODE_DOCKER_IMAGES:
+                    img_pattern = NODE_DOCKER_IMAGES[name]
+                    if not any(img_pattern in (tag or "") for c in client.containers.list() for tag in c.image.tags):
+                        failed.add(name)
+        except Exception as e:
+            print("⚠️ Docker check failed:", e)
 
+        # Проверка процессов
         active = set()
         for p in psutil.process_iter(['cmdline']):
             try:
                 cmd = " ".join(p.info['cmdline'])
-                for name, pattern in NODE_PROCESSES.items():
-                    if pattern in cmd:
-                        active.add(name)
-            except:
+                for process_name, keyword in NODE_PROCESSES.items():
+                    if process_name in installed_nodes and keyword in cmd:
+                        active.add(process_name)
+            except Exception:
                 continue
-        for name in NODE_PROCESSES:
-            if name not in active:
-                failed.append(name)
 
+        for name in installed_nodes:
+            if name in NODE_PROCESSES and name not in active:
+                failed.add(name)
+
+        # Проверка screen-сессий
         try:
-            out = subprocess.check_output(["screen", "-ls"], text=True)
-            for name, session in NODE_SCREENS.items():
-                if session not in out:
-                    failed.append(name)
+            screens = subprocess.check_output(["screen", "-ls"], text=True)
+            for name in installed_nodes:
+                if name in NODE_SCREENS:
+                    session = NODE_SCREENS[name]
+                    if session not in screens:
+                        failed.add(name)
         except:
-            failed += list(NODE_SCREENS)
+            pass
 
-        all_nodes = set(NODE_SYSTEMD) | set(NODE_PROCESSES) | set(NODE_SCREENS) | set(NODE_DOCKER_CONTAINERS) | set(NODE_DOCKER_IMAGES)
-
+        # Алерты
         for name in failed:
-            if not was_already_reported(name) and ALERTS_ENABLED:
+            if ALERTS_ENABLED and not was_already_reported(name):
                 send_alert(name)
                 mark_alert(name, True)
 
-        for name in all_nodes:
+        for name in installed_nodes:
             if name not in failed:
                 mark_alert(name, False)
 
