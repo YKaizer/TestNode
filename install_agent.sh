@@ -336,23 +336,21 @@ def monitor_nodes():
 
         # === Screen-сессии
         try:
-            screens = subprocess.check_output(["screen", "-ls"], text=True)
-            for name in installed_nodes:
-                if name in NODE_SCREENS:
-                    session = NODE_SCREENS[name]
-                    if session not in screens:
-                        failed.add(name)
-        except Exception as e:
-            print("⚠️ Ошибка при проверке screen:", e)
-
-        # === Особый случай: Gaia требует screen отдельно
+            screens = subprocess.check_output(["screen", "-ls"], text=True, stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            screens = ""
+        
+        for name in installed_nodes:
+            if name in NODE_SCREENS:
+                session = NODE_SCREENS[name]
+                if session not in screens:
+                    failed.add(name)
+        
+        # === Особый случай: Gaia
         if "Gaia" in installed_nodes:
-            try:
-                screens = subprocess.check_output(["screen", "-ls"], text=True)
-                if NODE_SCREENS["Gaia"] not in screens:
-                    failed.add("Gaia")
-            except Exception as e:
+            if NODE_SCREENS["Gaia"] not in screens:
                 failed.add("Gaia")
+
 
         # === Отправка алертов
         for name in failed:
